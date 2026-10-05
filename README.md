@@ -28,5 +28,8 @@ and choose password or private-key authentication. Password mode stores no
 secret; SSH prompts for it when connecting. Private-key mode also asks for the
 key path.
 
+Select a host and press <kbd>Ctrl-E</kbd> to edit it. Existing values are
+prefilled, and unrelated directives in its SSH config block are preserved.
+
 Wildcard-only SSH patterns are intentionally hidden because they are rules,
 not directly connectable host names. `Include` directives are followed.
