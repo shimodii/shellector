@@ -21,19 +21,23 @@ func makeRaw(fd uintptr) (*terminalState, error) {
 	if errno != 0 {
 		return nil, errno
 	}
-	raw := old
-	raw.Iflag &^= syscall.IGNBRK | syscall.BRKINT | syscall.PARMRK | syscall.ISTRIP | syscall.INLCR | syscall.IGNCR | syscall.ICRNL | syscall.IXON
-	raw.Oflag &^= syscall.OPOST
-	raw.Lflag &^= syscall.ECHO | syscall.ECHONL | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
-	raw.Cflag &^= syscall.CSIZE | syscall.PARENB
-	raw.Cflag |= syscall.CS8
-	raw.Cc[syscall.VMIN], raw.Cc[syscall.VTIME] = 1, 0
+	raw := rawTermios(old)
 	_, _, errno = syscall.Syscall6(syscall.SYS_IOCTL, fd, syscall.TCSETS, uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
 	if errno != 0 {
 		return nil, errno
 	}
 	state := terminalState(old)
 	return &state, nil
+}
+
+func rawTermios(old syscall.Termios) syscall.Termios {
+	raw := old
+	raw.Iflag &^= syscall.IGNBRK | syscall.BRKINT | syscall.PARMRK | syscall.ISTRIP | syscall.INLCR | syscall.IGNCR | syscall.ICRNL | syscall.IXON
+	raw.Lflag &^= syscall.ECHO | syscall.ECHONL | syscall.ICANON | syscall.ISIG | syscall.IEXTEN
+	raw.Cflag &^= syscall.CSIZE | syscall.PARENB
+	raw.Cflag |= syscall.CS8
+	raw.Cc[syscall.VMIN], raw.Cc[syscall.VTIME] = 1, 0
+	return raw
 }
 
 func restoreTerminal(fd uintptr, state *terminalState) {
