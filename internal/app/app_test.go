@@ -112,3 +112,15 @@ func TestAddHostFormHighlightsActiveTitle(t *testing.T) {
 		t.Fatal("inactive Name title is highlighted")
 	}
 }
+
+func TestFormFieldNavigation(t *testing.T) {
+	if got := previousField(0, loginPassword); got != 4 {
+		t.Fatalf("Shift+Tab from first password field = %d, want 4", got)
+	}
+	if got := previousField(0, loginPrivateKey); got != 5 {
+		t.Fatalf("Shift+Tab from first private-key field = %d, want 5", got)
+	}
+	if got := previousField(3, loginPassword); got != 2 {
+		t.Fatalf("Shift+Tab from port = %d, want 2", got)
+	}
+}
