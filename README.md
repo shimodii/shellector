@@ -23,5 +23,10 @@ Run `shellector`, type to search, use <kbd>↑</kbd>/<kbd>↓</kbd> to move, and
 press <kbd>Enter</kbd> to connect. Press <kbd>Esc</kbd> or <kbd>Ctrl-C</kbd> to
 quit. To read another config file, use `shellector -f ./config`.
 
+Press <kbd>Ctrl-A</kbd> to add a host. Enter its name, address, login user, port,
+and choose password or private-key authentication. Password mode stores no
+secret; SSH prompts for it when connecting. Private-key mode also asks for the
+key path.
+
 Wildcard-only SSH patterns are intentionally hidden because they are rules,
 not directly connectable host names. `Include` directives are followed.
