@@ -27,6 +27,14 @@ type hostConfig struct {
 }
 
 func promptAddHost() (hostConfig, bool, error) {
+	return promptHost("Add SSH host", hostConfig{port: "22"})
+}
+
+func promptEditHost(host hostConfig) (hostConfig, bool, error) {
+	return promptHost("Edit SSH host", host)
+}
+
+func promptHost(title string, host hostConfig) (hostConfig, bool, error) {
 	state, err := makeRaw(os.Stdin.Fd())
 	if err != nil {
 		return hostConfig{}, false, err
@@ -37,10 +45,9 @@ func promptAddHost() (hostConfig, bool, error) {
 		restoreTerminal(os.Stdin.Fd(), state)
 	}()
 
-	host := hostConfig{port: "22"}
 	field, message := 0, ""
 	for {
-		renderAddHost(host, field, message)
+		renderHostForm(title, host, field, message)
 		key, text, err := readKey()
 		if err != nil {
 			return hostConfig{}, false, err
@@ -55,6 +62,8 @@ func promptAddHost() (hostConfig, bool, error) {
 			}
 		case "tab":
 			field = nextField(field, host.method)
+		case "shift-tab":
+			field = previousField(field, host.method)
 		case "enter":
 			if field < lastField(host.method) {
 				field = nextField(field, host.method)
@@ -86,6 +95,13 @@ func nextField(field int, method loginMethod) int {
 	return field + 1
 }
 
+func previousField(field int, method loginMethod) int {
+	if field <= 0 {
+		return lastField(method)
+	}
+	return field - 1
+}
+
 func lastField(method loginMethod) int {
 	if method == loginPrivateKey {
 		return 5
@@ -111,10 +127,18 @@ func editableField(host *hostConfig, field int) *string {
 }
 
 func renderAddHost(host hostConfig, field int, message string) {
-	fmt.Print(formatAddHost(host, field, message))
+	renderHostForm("Add SSH host", host, field, message)
 }
 
 func formatAddHost(host hostConfig, field int, message string) string {
+	return formatHostForm("Add SSH host", host, field, message)
+}
+
+func renderHostForm(title string, host hostConfig, field int, message string) {
+	fmt.Print(formatHostForm(title, host, field, message))
+}
+
+func formatHostForm(title string, host hostConfig, field int, message string) string {
 	fields := []struct{ label, value string }{
 		{"Name", host.name},
 		{"Address", host.address},
@@ -126,7 +150,7 @@ func formatAddHost(host hostConfig, field int, message string) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("\x1b[H\x1b[2J\x1b[1;36m  Add SSH host\x1b[0m\n\n")
+	fmt.Fprintf(&b, "\x1b[H\x1b[2J\x1b[1;36m  %s\x1b[0m\n\n", title)
 	for i, input := range fields[:4] {
 		if i == field {
 			fmt.Fprintf(&b, "  \x1b[1;36m› %s\x1b[0m\n", input.label)
@@ -167,7 +191,7 @@ func formatAddHost(host hostConfig, field int, message string) string {
 	if message != "" {
 		fmt.Fprintf(&b, "  \x1b[31m%s\x1b[0m\n\n", message)
 	}
-	b.WriteString("  \x1b[2mtab/enter next  ↑/↓ choose method  enter to save  esc cancel\x1b[0m")
+	b.WriteString("  \x1b[2mtab/enter next  shift+tab back  ↑/↓ choose method  enter to save  esc cancel\x1b[0m")
 	return b.String()
 }
 
@@ -214,21 +238,30 @@ func appendHost(path string, host hostConfig, existing []string) error {
 		return fmt.Errorf("read SSH config: %w", err)
 	}
 
-	var block strings.Builder
-	fmt.Fprintf(&block, "%sHost %s\n    HostName %s\n    User %s\n    Port %s\n", separator, host.name, host.address, host.user, host.port)
-	if host.method == loginPrivateKey {
-		fmt.Fprintf(&block, "    IdentityFile %s\n    IdentitiesOnly yes\n    PreferredAuthentications publickey\n", host.privateKey)
-	} else {
-		block.WriteString("    PreferredAuthentications password,keyboard-interactive\n")
-	}
-
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return fmt.Errorf("open SSH config: %w", err)
 	}
 	defer file.Close()
-	if _, err := file.WriteString(block.String()); err != nil {
+	if _, err := file.WriteString(separator + formatHostBlock(host, nil)); err != nil {
 		return fmt.Errorf("write SSH config: %w", err)
 	}
 	return nil
+}
+
+func formatHostBlock(host hostConfig, extra []string) string {
+	var block strings.Builder
+	fmt.Fprintf(&block, "Host %s\n    HostName %s\n    User %s\n    Port %s\n", host.name, host.address, host.user, host.port)
+	if host.method == loginPrivateKey {
+		fmt.Fprintf(&block, "    IdentityFile %s\n    IdentitiesOnly yes\n    PreferredAuthentications publickey\n", host.privateKey)
+	} else {
+		block.WriteString("    PreferredAuthentications password,keyboard-interactive\n")
+	}
+	for _, line := range extra {
+		block.WriteString(line)
+		if !strings.HasSuffix(line, "\n") {
+			block.WriteByte('\n')
+		}
+	}
+	return block.String()
 }
