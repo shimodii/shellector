@@ -28,21 +28,43 @@ func Run(args []string) error {
 		}
 	}
 
-	hosts, err := parseSSHConfig(path)
-	if err != nil {
-		return err
-	}
-	if len(hosts) == 0 {
-		return fmt.Errorf("no named hosts found in %s", path)
-	}
 	if !isTerminal(os.Stdin.Fd()) || !isTerminal(os.Stdout.Fd()) {
 		return errors.New("an interactive terminal is required")
 	}
 
-	host, ok, err := selectHost(hosts)
-	if err != nil || !ok {
-		return err
+	for {
+		hosts, err := loadHosts(path)
+		if err != nil {
+			return err
+		}
+		selection, err := selectHost(hosts)
+		if err != nil || selection.action == actionQuit {
+			return err
+		}
+		if selection.action == actionAdd {
+			host, submitted, err := promptAddHost()
+			if err != nil {
+				return err
+			}
+			if submitted {
+				if err := appendHost(path, host, hosts); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		return connect(selection.host)
 	}
+}
+
+func loadHosts(path string) ([]string, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, nil
+	}
+	return parseSSHConfig(path)
+}
+
+func connect(host string) error {
 	ssh, err := findExecutable("ssh")
 	if err != nil {
 		return err
