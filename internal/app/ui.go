@@ -13,6 +13,7 @@ const (
 	actionQuit action = iota
 	actionConnect
 	actionAdd
+	actionEdit
 )
 
 type selection struct {
@@ -57,6 +58,10 @@ func selectHost(hosts []string) (selection, error) {
 			}
 		case "ctrl-a":
 			return selection{action: actionAdd}, nil
+		case "ctrl-e":
+			if len(matches) > 0 {
+				return selection{action: actionEdit, host: matches[cursor]}, nil
+			}
 		case "escape", "ctrl-c":
 			return selection{action: actionQuit}, nil
 		case "backspace":
@@ -117,7 +122,7 @@ func render(hosts []string, query string, cursor int) {
 			fmt.Fprintf(&b, "    %-*s\n", lineWidth, host)
 		}
 	}
-	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  ctrl+a add  esc quit\x1b[0m")
+	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  ctrl+a add  ctrl+e edit  esc quit\x1b[0m")
 	fmt.Print(b.String())
 }
 
@@ -140,6 +145,8 @@ func readKey() (key, text string, err error) {
 	switch b[0] {
 	case 1:
 		return "ctrl-a", "", nil
+	case 5:
+		return "ctrl-e", "", nil
 	case 3:
 		return "ctrl-c", "", nil
 	case 13, 10:
@@ -167,6 +174,9 @@ func readKey() (key, text string, err error) {
 		}
 		if seq[1] == 'B' {
 			return "down", "", nil
+		}
+		if seq[1] == 'Z' {
+			return "shift-tab", "", nil
 		}
 		return "unknown", "", nil
 	default:
