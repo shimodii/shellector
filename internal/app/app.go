@@ -53,6 +53,22 @@ func Run(args []string) error {
 			}
 			continue
 		}
+		if selection.action == actionEdit {
+			entry, err := findEditableHost(path, selection.host)
+			if err != nil {
+				return err
+			}
+			updated, submitted, err := promptEditHost(entry.host)
+			if err != nil {
+				return err
+			}
+			if submitted {
+				if err := updateHost(entry, updated, hosts); err != nil {
+					return err
+				}
+			}
+			continue
+		}
 		return connect(selection.host)
 	}
 }
