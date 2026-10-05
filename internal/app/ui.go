@@ -7,10 +7,23 @@ import (
 	"unicode/utf8"
 )
 
-func selectHost(hosts []string) (selected string, ok bool, err error) {
+type action int
+
+const (
+	actionQuit action = iota
+	actionConnect
+	actionAdd
+)
+
+type selection struct {
+	action action
+	host   string
+}
+
+func selectHost(hosts []string) (selection, error) {
 	state, err := makeRaw(os.Stdin.Fd())
 	if err != nil {
-		return "", false, err
+		return selection{}, err
 	}
 	fmt.Print("\x1b[?1049h\x1b[?25l")
 	defer func() {
@@ -27,7 +40,7 @@ func selectHost(hosts []string) (selected string, ok bool, err error) {
 		render(matches, query, cursor)
 		key, text, readErr := readKey()
 		if readErr != nil {
-			return "", false, readErr
+			return selection{}, readErr
 		}
 		switch key {
 		case "up":
@@ -40,10 +53,12 @@ func selectHost(hosts []string) (selected string, ok bool, err error) {
 			}
 		case "enter":
 			if len(matches) > 0 {
-				return matches[cursor], true, nil
+				return selection{action: actionConnect, host: matches[cursor]}, nil
 			}
+		case "ctrl-a":
+			return selection{action: actionAdd}, nil
 		case "escape", "ctrl-c":
-			return "", false, nil
+			return selection{action: actionQuit}, nil
 		case "backspace":
 			if query != "" {
 				_, n := utf8.DecodeLastRuneInString(query)
@@ -102,7 +117,7 @@ func render(hosts []string, query string, cursor int) {
 			fmt.Fprintf(&b, "    %-*s\n", lineWidth, host)
 		}
 	}
-	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  esc quit\x1b[0m")
+	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  ctrl+a add  esc quit\x1b[0m")
 	fmt.Print(b.String())
 }
 
@@ -123,10 +138,14 @@ func readKey() (key, text string, err error) {
 		return
 	}
 	switch b[0] {
+	case 1:
+		return "ctrl-a", "", nil
 	case 3:
 		return "ctrl-c", "", nil
 	case 13, 10:
 		return "enter", "", nil
+	case 9:
+		return "tab", "", nil
 	case 127, 8:
 		return "backspace", "", nil
 	case 27:
