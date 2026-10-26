@@ -49,6 +49,7 @@ shellector -f ./config
 | <kbd>Enter</kbd> | Connect to the selected host |
 | <kbd>Ctrl-A</kbd> | Add a host |
 | <kbd>Ctrl-E</kbd> | Edit the selected host |
+| <kbd>Ctrl-X</kbd> | Delete the selected host after confirmation |
 | <kbd>Esc</kbd> / <kbd>Ctrl-C</kbd> | Quit |
 
 ### Add and edit forms
@@ -72,6 +73,8 @@ method. Private-key authentication also requires an identity-file path.
 - Wildcard and negated host patterns are hidden because they are matching rules,
   not directly connectable aliases.
 - Editing preserves unrelated directives such as `ProxyJump`.
+- Deleting requires confirmation and atomically removes only the selected host
+  block.
 - A shared declaration such as `Host web-1 web-2` cannot be edited because
   changing it could unintentionally modify multiple aliases.
 
