@@ -4,6 +4,8 @@
 It reads `~/.ssh/config`, provides live search and keyboard navigation, and
 starts the system SSH client for the selected host.
 
+![shellector host picker](image/image_2026-10-26_11-36-38.png)
+
 ## Features
 
 - Search configured hosts as you type.
