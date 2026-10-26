@@ -69,6 +69,22 @@ func Run(args []string) error {
 			}
 			continue
 		}
+		if selection.action == actionDelete {
+			entry, err := findEditableHost(path, selection.host)
+			if err != nil {
+				return err
+			}
+			confirmed, err := promptDeleteHost(selection.host)
+			if err != nil {
+				return err
+			}
+			if confirmed {
+				if err := deleteHost(entry); err != nil {
+					return err
+				}
+			}
+			continue
+		}
 		return connect(selection.host)
 	}
 }

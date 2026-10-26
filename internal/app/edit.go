@@ -169,6 +169,14 @@ func updateHost(entry editableHost, updated hostConfig, existing []string) error
 	if updated.name != entry.originalName && contains(existing, updated.name) {
 		return fmt.Errorf("host %q already exists", updated.name)
 	}
+	return replaceHostBlock(entry, formatHostBlock(updated, entry.extraDirectives))
+}
+
+func deleteHost(entry editableHost) error {
+	return replaceHostBlock(entry, "")
+}
+
+func replaceHostBlock(entry editableHost, replacement string) error {
 	data, err := os.ReadFile(entry.path)
 	if err != nil {
 		return fmt.Errorf("read SSH config: %w", err)
@@ -179,9 +187,8 @@ func updateHost(entry editableHost, updated hostConfig, existing []string) error
 	if string(data[entry.start:entry.end]) != string(entry.originalBlock) {
 		return errors.New("SSH config changed while editing; reopen the host and try again")
 	}
-	replacement := formatHostBlock(updated, entry.extraDirectives)
 	result := append([]byte{}, data[:entry.start]...)
-	result = append(result, replacement...)
+	result = append(result, []byte(replacement)...)
 	result = append(result, data[entry.end:]...)
 
 	info, err := os.Stat(entry.path)

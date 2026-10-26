@@ -14,6 +14,7 @@ const (
 	actionConnect
 	actionAdd
 	actionEdit
+	actionDelete
 )
 
 type selection struct {
@@ -61,6 +62,10 @@ func selectHost(hosts []string) (selection, error) {
 		case "ctrl-e":
 			if len(matches) > 0 {
 				return selection{action: actionEdit, host: matches[cursor]}, nil
+			}
+		case "ctrl-x":
+			if len(matches) > 0 {
+				return selection{action: actionDelete, host: matches[cursor]}, nil
 			}
 		case "escape", "ctrl-c":
 			return selection{action: actionQuit}, nil
@@ -122,7 +127,7 @@ func render(hosts []string, query string, cursor int) {
 			fmt.Fprintf(&b, "    %-*s\n", lineWidth, host)
 		}
 	}
-	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  ctrl+a add  ctrl+e edit  esc quit\x1b[0m")
+	b.WriteString("\n  \x1b[2m↑/↓ navigate  enter connect  ctrl+a add  ctrl+e edit  ctrl+x delete  esc quit\x1b[0m")
 	fmt.Print(b.String())
 }
 
@@ -147,6 +152,8 @@ func readKey() (key, text string, err error) {
 		return "ctrl-a", "", nil
 	case 5:
 		return "ctrl-e", "", nil
+	case 24:
+		return "ctrl-x", "", nil
 	case 3:
 		return "ctrl-c", "", nil
 	case 13, 10:
